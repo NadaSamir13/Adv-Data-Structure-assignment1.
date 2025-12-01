@@ -32,12 +32,6 @@ public:
     {
         ro = NULL;
     }
-
-    /*void Insert(T value);
-    void Print();
-    void InsertNonFull(Node* node, T value);
-    void SplitChild(Node* parent, int index);
-    void Print(Node* node, int level);*/
 };
 
 
