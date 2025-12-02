@@ -36,9 +36,37 @@ public:
 };
 
 template <typename T, int order>
-void B_Tree<T, order>::split(Node* node, T key)
-{
+void B_Tree<T, order>::split(Node* parent, int childIndex) {
+    Node* fullChild = parent->child[childIndex];
+    Node* newRight = new Node(fullChild->is_leaf);
 
+    int mid = (order - 1) / 2;
+
+    int j = 0;
+    for (int k = mid + 1; k < order - 1; k++) {
+        newRight->keys[j++] = fullChild->keys[k];
+    }
+    newRight->keyCount = j;
+
+    if (!fullChild->is_leaf) {
+        for (int k = mid + 1; k < order; k++) {
+            newRight->child[k - (mid + 1)] = fullChild->child[k];
+            fullChild->child[k] = nullptr;
+        }
+    }
+
+    fullChild->keyCount = mid;
+
+    for (int k = parent->keyCount; k >= childIndex + 1; k--) {
+        parent->child[k + 1] = parent->child[k];
+    }
+    parent->child[childIndex + 1] = newRight;
+
+    for (int k = parent->keyCount - 1; k >= childIndex; k--) {
+        parent->keys[k + 1] = parent->keys[k];
+    }
+    parent->keys[childIndex] = fullChild->keys[mid];
+    parent->keyCount++;
 }
 
 template <typename T, int order>
