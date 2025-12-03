@@ -32,7 +32,10 @@ public:
         root = NULL;
     }
     void insert(T key);
-    void split(Node* node, T key);
+
+    // Helper functions
+    void insertNonFull(Node * node, T key); // Insert when node is NOT full
+    void split(Node* node, int childIndex); // Split a full child during insertion
 };
 
 template <typename T, int order>
@@ -70,9 +73,70 @@ void B_Tree<T, order>::split(Node* parent, int childIndex) {
 }
 
 template <typename T, int order>
+void B_Tree<T, order>::insertNonFull(B_Tree::Node *node, T key)
+{
+    /*
+       This function inserts a key into a node that is guaranteed NOT to be full.
+       Two scenarios:
+
+       1) If node is LEAF → insert key into correct sorted position.
+       2) If node is INTERNAL:
+            - Determine which child to descend into.
+            - If that child is full → split it first.
+            - After split, determine correct child and continue insertion.
+    */
+
+
+    int count = node->keyCount - 1;
+    // Case 1: Leaf node → Insert directly into sorted position
+    if(node->is_leaf)
+    {
+        while (count >= 0) {
+            if (node->keys[count] > key) {
+                node->keys[count + 1] = node->keys[count];
+                count--;
+            }
+            else
+                break;
+        }
+        node->keys[count + 1] = key;
+        node->keyCount++;
+    }
+
+    // Case 2: Internal node → Find correct child to descend into
+    else
+    {
+        // Locate child index to descend
+        while(count >= 0 && node->keys[count] > key)
+            count--;
+        count++; // count = correct child index
+
+        // If child is full → MUST split before insertion
+        if(node->child[count]->keyCount == order - 1)
+        {
+            split(node, count);
+
+            // After split, check which of the two children should receive the key
+            if(key > node->keys[count])
+                count++;
+        }
+
+        // Recursive insert into correct child
+        insertNonFull(node->child[count], key);
+    }
+}
+
+template <typename T, int order>
 void B_Tree<T, order>::insert(T key)
 {
-    //case1: root is empty:
+    /*
+      Main insertion logic:
+      1) If tree is empty → create root as leaf and insert key.
+      2) If root is full → split it first (special case).
+      3) Otherwise → insertNonFull(root)
+   */
+
+    // Case 1: Tree is empty: create root
     if(root == NULL)
     {
         root = new Node(true);
@@ -81,31 +145,30 @@ void B_Tree<T, order>::insert(T key)
         return;
     }
 
-    //case2: root not Full:
-    if(root->keyCount < order - 1)
+    // Case 2: root is Full: (Split needed)
+    if (root->keyCount == order - 1)
     {
-        int count = root->keyCount - 1;
-        while(count >= 0)
-        {
-            if(root->keys[count] > key)
-            {
-                root->keys[count + 1] = root->keys[count];
-                count--;
-            } else
-                break;
-        }
-        root->keys[count + 1] = key;
-        root->keyCount++;
-        return;
+        Node* newRoot = new Node(false);
+        newRoot->child[0] = root;
+
+        split(newRoot, 0);
+
+        // Determine which child of new root will receive the key
+        int i = 0;
+        if (key > newRoot->keys[0])
+            i++;
+
+        insertNonFull(newRoot->child[i], key);
+
+        root = newRoot;
     }
 
-    //case3: root is Full: (Split)
+    // Case 3: Root not full → normal insert
     else
     {
-       split(root, key);
+        insertNonFull(root, key);
     }
 }
-
 
 int main () {
     return 0;
